@@ -12,13 +12,8 @@ from langchain_community.llms import Ollama
 import streamlit as st
 import subprocess
 import importlib.util
-import sys
 
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_sm")
 
 def extract_company_name(text):
     doc = nlp(text)
