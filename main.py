@@ -13,16 +13,11 @@ import streamlit as st
 import subprocess
 import importlib.util
 
-# Ensure the SpaCy model is downloaded
-model_name = "en_core_web_sm"
-
-# Download model if not already available
 try:
-    spacy.load(model_name)
+    nlp = spacy.load("en_core_web_sm")
 except OSError:
-    subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
-
-nlp = spacy.load(model_name)
+    subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
 
 def extract_company_name(text):
     doc = nlp(text)
