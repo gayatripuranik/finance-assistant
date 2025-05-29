@@ -10,8 +10,15 @@ import spacy
 from datetime import datetime
 from langchain_community.llms import Ollama
 import streamlit as st
+import subprocess
+import importlib.util
 
-nlp = spacy.load("en_core_web_sm")
+# Ensure the SpaCy model is downloaded
+model_name = "en_core_web_sm"
+if not importlib.util.find_spec(model_name):
+    subprocess.run(["python", "-m", "spacy", "download", model_name])
+nlp = spacy.load(model_name)
+
 
 def extract_company_name(text):
     doc = nlp(text)
