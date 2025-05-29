@@ -1,0 +1,9 @@
+streamlit
+yfinance
+beautifulsoup4
+requests
+sentence-transformers
+faiss-cpu
+yahooquery
+spacy
+ollama
