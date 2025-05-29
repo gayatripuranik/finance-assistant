@@ -27,7 +27,7 @@ def get_ticker_from_company_name(text):
     results = search(text)
     quotes = results.get("quotes", [])
     if quotes:
-        return quotes[0]["symbol"]  # Take the top result
+        return quotes[0]["symbol"]
     return None
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -36,7 +36,6 @@ def get_sec_filing_text(ticker):
     base_url = f"https://www.sec.gov/cgi-bin/browse-edgar"
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # Step 1: Get the filings page
     params = {
         "action": "getcompany",
         "CIK": ticker,
@@ -49,7 +48,6 @@ def get_sec_filing_text(ticker):
         res = requests.get(base_url, headers=headers, params=params)
         soup = BeautifulSoup(res.text, "html.parser")
 
-        # Step 2: Find the first filing row with a "Documents" link
         doc_link_tag = soup.find("a", string="Documents")
         if not doc_link_tag:
             return "No filings found."
@@ -58,19 +56,18 @@ def get_sec_filing_text(ticker):
         filing_page = requests.get(filing_page_url, headers=headers)
         filing_soup = BeautifulSoup(filing_page.text, "html.parser")
 
-        # Step 3: Get the primary document (typically .htm or .txt)
         table = filing_soup.find("table", class_="tableFile", summary="Document Format Files")
         if not table:
             return "No document table found in filing."
 
-        first_row = table.find_all("tr")[1]  # Skip header row
+        first_row = table.find_all("tr")[1] 
         cols = first_row.find_all("td")
         if len(cols) < 3:
             return "No valid document row found."
 
         doc_url = urljoin("https://www.sec.gov", cols[2].a["href"])
         doc_text = requests.get(doc_url, headers=headers).text
-        return doc_text[:5000]  # Truncate for performance
+        return doc_text[:5000]
     except Exception as e:
         return f"Error during SEC scraping: {str(e)}"
 
@@ -81,13 +78,10 @@ def gather_and_retrieve(text, k=5):
 
     chunks = []
 
-    # --- API Agent: Latest stock data including today's intraday ---
     stock = yf.Ticker(ticker)
     try:
-        # Get last 7 days with daily resolution (including today if market open)
         hist = stock.history(period="7d", interval="1d").to_string()
 
-        # Optionally, get intraday (last trading day, 1m interval) - smaller chunk
         intraday = stock.history(period="1d", interval="1m").tail(10).to_string()
 
         info = stock.info
@@ -97,13 +91,8 @@ def gather_and_retrieve(text, k=5):
     except Exception as e:
         chunks.append(f"[{ticker}] Failed to get Yahoo Finance data: {str(e)}")
 
-    # --- Scraping Agent ---
     filing_text = get_sec_filing_text(ticker)
     chunks.append(f"[{ticker}] SEC filing snippet:\n" + filing_text)
-
-    # --- (Optional) Add other data sources if needed ---
-
-    # --- Retriever Agent ---
     embeddings = model.encode(chunks)
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(np.array(embeddings))
@@ -112,9 +101,9 @@ def gather_and_retrieve(text, k=5):
     formatted_chunks = []
     for i in indices[0]:
         chunk = chunks[i]
-        # Clean and shorten each chunk to make it LLM-friendly
+        #Clean and shorten each chunk to make it LLM-friendly
         clean_chunk = chunk.strip().replace("\n", " ").replace("  ", " ")
-        # Limit very long sections (e.g., SEC text or long price tables)
+        #Limit very long sections
         if len(clean_chunk) > 800:
             clean_chunk = clean_chunk[:800] + "..."
         formatted_chunks.append(f"{i+1}. {clean_chunk}")
@@ -124,8 +113,6 @@ def gather_and_retrieve(text, k=5):
 def gather_market_insights(text):
     text_lower = text.lower()
     insights = []
-
-    # --- Broad indices ---
     indices = {
         "S&P 500": "^GSPC",
         "Dow Jones": "^DJI",
@@ -142,8 +129,6 @@ def gather_market_insights(text):
             insights.append(f"{name}: {latest['Close']:.2f} ({percent:+.2f}%)")
         except:
             continue
-
-    # --- Sector/theme ETF mappings ---
     etf_map = {
         "tech": "XLK",
         "energy": "XLE",
@@ -174,11 +159,9 @@ def gather_market_insights(text):
             except Exception as e:
                 insights.append(f"Failed to load {keyword} ETF ({etf}): {e}")
 
-    # --- If nothing matched, add hint ---
     if not matched:
         insights.append("No specific sector/theme detected — showing broad market indices only.")
 
-    # --- Optional: volatility indicator (risk sentiment) ---
     if "risk" in text_lower or "volatility" in text_lower:
         try:
             vix = yf.Ticker("^VIX").history(period="1d", interval="5m")
@@ -202,23 +185,11 @@ def synthesize_insights(query: str, insights: list[str]) -> str:
 query = "Show me Amazon's latest earnings"
 company = extract_company_name(query)
 
-# if company:
-#     result = gather_and_retrieve(company)
-#     summary = synthesize_insights(query, result)
-# else:
-#
-#     insights = gather_market_insights(query)
-#
-#     summary = synthesize_insights(query, insights)
-#
-# print(summary)
-
 st.set_page_config(page_title="Financial Query Assistant", page_icon="💹")
 
 st.title("💹 Financial Query Assistant")
 st.write("Enter your query about companies, stocks, or market insights:")
 
-# Input box for user query
 user_query = st.text_input("Enter your question or company name:", "")
 
 if user_query:
@@ -233,14 +204,8 @@ if user_query:
 
         summary = synthesize_insights(user_query, insights)
     with st.spinner("Fetching data and generating answer..."):
-        # # Get relevant data chunks from your gather_and_retrieve function
         relevant_chunks = gather_and_retrieve(user_query)
-        #
-        # # Get market insights based on query keywords
         market_insights = gather_market_insights(user_query)
-
-        # Synthesize final answer combining query and gathered insights
-        #answer = synthesize_insights(user_query, market_insights + relevant_chunks)
         answer=summary
     st.subheader("Answer")
     st.write(answer)
