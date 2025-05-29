@@ -15,10 +15,14 @@ import importlib.util
 
 # Ensure the SpaCy model is downloaded
 model_name = "en_core_web_sm"
-if not importlib.util.find_spec(model_name):
-    subprocess.run(["python", "-m", "spacy", "download", model_name])
-nlp = spacy.load(model_name)
 
+# Download model if not already available
+try:
+    spacy.load(model_name)
+except OSError:
+    subprocess.run(["python", "-m", "spacy", "download", model_name], check=True)
+
+nlp = spacy.load(model_name)
 
 def extract_company_name(text):
     doc = nlp(text)
