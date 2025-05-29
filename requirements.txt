@@ -1,11 +1,10 @@
 streamlit
 yfinance
-beautifulsoup4
 requests
+beautifulsoup4
 sentence-transformers
 faiss-cpu
 yahooquery
 spacy
-ollama
 langchain-community
-numpy
+ollama
