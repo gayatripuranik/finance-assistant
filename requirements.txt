@@ -8,3 +8,5 @@ yahooquery
 spacy
 ollama
 langchain-community
+numpy
+urlib.parse
