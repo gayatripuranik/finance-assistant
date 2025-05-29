@@ -12,6 +12,7 @@ from langchain_community.llms import Ollama
 import streamlit as st
 import subprocess
 import importlib.util
+import sys
 
 try:
     nlp = spacy.load("en_core_web_sm")
