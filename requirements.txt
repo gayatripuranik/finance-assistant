@@ -6,7 +6,7 @@ sentence-transformers
 faiss-cpu
 yahooquery
 spacy==3.8.7
-langchain_community
+langchain-community
 ollama
 pydantic>=2.7.0
 pydantic-settings==2.9.1
